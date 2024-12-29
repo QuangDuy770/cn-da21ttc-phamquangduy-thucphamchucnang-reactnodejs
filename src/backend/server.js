@@ -9,6 +9,7 @@ import cartRouter from './routes/cartRoute.js'
 import wishlistRouter from './routes/wishlistRoute.js'
 import orderRouter from './routes/orderRoute.js'
 import reviewRouter from './routes/reviewRoute.js'
+import dashboardRouter from './routes/dashboardRoute.js'
 
 
 //App config
@@ -28,6 +29,8 @@ app.use('/api/cart',cartRouter)
 app.use('/api/wishlist', wishlistRouter)
 app.use('/api/order', orderRouter)
 app.use('/api/reviews', reviewRouter)
+app.use('/api', dashboardRouter)
+
 
 app.get('/',(req,res)=>{
     res.send("API Working")

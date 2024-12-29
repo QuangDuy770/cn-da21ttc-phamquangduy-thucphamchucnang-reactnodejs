@@ -3,7 +3,7 @@ import productModel from "../models/productModel.js"; // Import model sản ph�
 // Thêm bình luận vào sản phẩm
 const addComment = async (req, res) => {
     try {
-        const { productId, userId, comment, rating } = req.body;
+        const { productId, userId, comment, rating, nameuser} = req.body;
 
         // Kiểm tra xem sản phẩm có tồn tại không
         const product = await productModel.findById(productId);
@@ -15,6 +15,7 @@ const addComment = async (req, res) => {
         const newComment = {
             comment,
             rating,
+            nameuser,
             user: userId, // userId lấy từ request body
         };
 

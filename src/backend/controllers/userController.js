@@ -96,4 +96,17 @@ const adminLogin = async (req, res) => {
     }
 }
 
-export { loginUser, registerUser, adminLogin }
+const getAllUsers = async (req, res) => {
+    try {
+      // Tìm tất cả users, loại bỏ trường password
+      const users = await userModel.find().select("-password");
+      res.json({ success: true, data: users });
+    } catch (error) {
+      console.log(error);
+      res.json({ success: false, message: error.message });
+    }
+  };
+  
+  
+
+export { loginUser, registerUser, adminLogin, getAllUsers }
