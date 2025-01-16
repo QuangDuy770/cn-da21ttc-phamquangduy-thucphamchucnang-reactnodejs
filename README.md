@@ -1,5 +1,5 @@
 # cn-da21ttc-phamquangduy-thucphamchucnang-reactnodejs
-<h1>XÂY DỰNG WEBSITE GIỚI THIỆU VÀ MUA BÁN THỰC PHẨM CHỨC NĂNG/h1>
+<h1>XÂY DỰNG WEBSITE GIỚI THIỆU VÀ MUA BÁN THỰC PHẨM CHỨC NĂNG</h1>
 
 Sinh viên thực hiện: Phạm Quang Duy<br>
 GV hướng dẫn: ThS. Phạm Minh Đương<br>
