@@ -1,57 +1,81 @@
-import productModel from "../models/productModel.js"; // Import model sản phẩm
+import mongoose from 'mongoose';
+import orderModel from '../models/orderModel.js'; // Import đúng tên
 
-// Thêm bình luận vào sản phẩm
-const addComment = async (req, res) => {
+const addReview = async (req, res) => {
+    const { orderId } = req.params;
+    const { rating, comment } = req.body;
+
+    // Kiểm tra tính hợp lệ của `orderId`
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+        return res.status(400).json({ message: 'orderId không hợp lệ' });
+    }
+
+    // Kiểm tra tính hợp lệ của `rating`
+    if (!rating || rating < 1 || rating > 5) {
+        return res.status(400).json({ message: 'Rating phải từ 1 đến 5 sao' });
+    }
+
     try {
-        const { productId, userId, comment, rating, nameuser} = req.body;
-
-        // Kiểm tra xem sản phẩm có tồn tại không
-        const product = await productModel.findById(productId);
-        if (!product) {
-            return res.json({ success: false, message: "Sản phẩm không tồn tại" });
+        // Tìm đơn hàng theo `orderId`
+        const order = await orderModel.findById(orderId); // Sử dụng đúng tên model
+        if (!order) {
+            return res.status(404).json({ message: 'Order không tồn tại' });
         }
 
-        // Tạo đối tượng bình luận mới
-        const newComment = {
-            comment,
+        // Tạo đánh giá mới
+        const newReview = {
             rating,
-            nameuser,
-            user: userId, // userId lấy từ request body
+            comment,
+            createdAt: new Date(),
         };
 
-        // Thêm bình luận vào mảng reviews của sản phẩm
-        product.reviews.push(newComment);
+        // Thêm đánh giá vào mảng `reviews`
+        order.reviews.push(newReview);
 
-        // Lưu sản phẩm sau khi đã thêm bình luận
-        await product.save();
+        // Lưu thay đổi vào cơ sở dữ liệu
+        await order.save();
 
-        res.json({ success: true, message: "Bình luận đã được thêm thành công!" });
+        res.status(201).json({
+            message: 'Thêm đánh giá thành công',
+            review: newReview,
+        });
     } catch (error) {
-        console.log(error);
-        res.json({ success: false, message: error.message });
+        console.error('Error in addReview:', error); // Ghi log lỗi để debug
+        res.status(500).json({
+            message: 'Lỗi server',
+            error: error.message,
+        });
     }
 };
-// Lấy tất cả bình luận của sản phẩm
-const getComments = async (req, res) => {
+
+
+const getAllReviews = async (req, res) => {
     try {
-        const { productId } = req.body;
+        // Lấy tất cả đánh giá từ tất cả các đơn hàng
+        const allReviews = await orderModel.aggregate([
+            { $unwind: "$reviews" },
+            {
+                $project: {
+                    _id: 0,
+                    orderId: "$_id", // Thêm orderId
+                    items: 1, // Thêm thông tin items
+                    firstName: "$address.firstName", // Thêm firstName từ address
+                    lastName: "$address.lastName", // Thêm lastName từ address
+                    rating: "$reviews.rating",
+                    comment: "$reviews.comment",
+                    createdAt: "$reviews.createdAt",
+                },
+            },
+        ]);
 
-        // Kiểm tra xem sản phẩm có tồn tại không
-        const product = await productModel.findById(productId).populate('reviews.user', 'name email'); // Populating thông tin người dùng từ user model
-        if (!product) {
-            return res.json({ success: false, message: "Sản phẩm không tồn tại" });
-        }
-
-        // Trả về tất cả các bình luận của sản phẩm
-        const comments = product.reviews;
-
-        res.json({ success: true, comments });
+        res.status(200).json({ success: true, reviews: allReviews });
     } catch (error) {
-        console.log(error);
-        res.json({ success: false, message: error.message });
+        console.error("Error in getAllReviews:", error); // Ghi log lỗi để debug
+        res.status(500).json({
+            message: "Lỗi server",
+            error: error.message,
+        });
     }
 };
 
-
-
-export { addComment,getComments };
+export { addReview, getAllReviews};

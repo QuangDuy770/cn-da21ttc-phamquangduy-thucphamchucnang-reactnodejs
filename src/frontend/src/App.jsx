@@ -18,6 +18,8 @@ import Contact from './pages/Contact'
 import News from './pages/News'
 import NewsDetail from './pages/NewsDetail'
 import Verify from './pages/Verify'
+import Review from './pages/Review'
+import VietDanhGia from './pages/VietDanhGia'
 
 const App = () => {
   return (
@@ -38,6 +40,8 @@ const App = () => {
           <Route path='/place-order' element={<PlaceOrder/>}/>
           <Route path='/orders' element={<Orders/>}/>
           <Route path='/verify' element={<Verify/>}/>
+          <Route path='/review' element={<Review/>}/>
+          <Route path='/danhgia/:orderid' element={<VietDanhGia/>}/>
         </Routes>
         <Footer/>
     </div>

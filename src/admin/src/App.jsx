@@ -8,6 +8,8 @@ import Orders from './pages/Orders'
 import Login from './components/Login'
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import TongQuan from './pages/TongQuan'
+import User from './pages/User'
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL
 export const currency = 'VND'
@@ -35,6 +37,8 @@ const App = () => {
                 <Route path='/add' element={<Add token={token}/>} />
                 <Route path='/list' element={<List token={token}/>} />
                 <Route path='/orders' element={<Orders token={token}/>} />
+                <Route path='/tq' element={<TongQuan token={token}/>} />
+                <Route path='/users' element={<User token={token}/>} />
               </Routes>
             </div>
           </div>
@@ -45,3 +49,5 @@ const App = () => {
 }
 
 export default App
+
+

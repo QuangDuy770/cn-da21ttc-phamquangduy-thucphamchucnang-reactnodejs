@@ -16,6 +16,31 @@ const placeOrder = async (req, res) => {
     try {
         const { userId, items, amount, address } = req.body;
 
+        let totalRevenue = 0;
+
+        for (const item of items) {
+            const product = await productModel.findById(item._id);
+            if (!product) {
+                return res.status(404).json({ message: `Không tìm thấy sản phẩm với ID ${item._id}` });
+            }
+
+            // Kiểm tra số lượng sản phẩm
+            if (product.soLuong < item.quantity) {
+                return res.status(400).json({
+                    message: `Sản phẩm ${product.name} chỉ còn ${product.soLuong} trong kho.`,
+                });
+            }
+
+            // Tính doanh thu từ từng sản phẩm
+            const revenue = (product.price - product.giaNhap) * item.quantity;
+            totalRevenue += revenue;
+
+            // Trừ số lượng sản phẩm trong kho
+            await productModel.findByIdAndUpdate(item._id, {
+                $inc: { soLuong: -item.quantity },
+            });
+        }
+
         const orderData = {
             userId,
             items,
@@ -24,22 +49,16 @@ const placeOrder = async (req, res) => {
             soLuong: items.reduce((total, item) => total + item.quantity, 0),
             paymentMethod: "COD",
             payment: false,
-            date: Date.now()
+            date: Date.now(),
+            revenue: totalRevenue, // Thêm trường doanh thu
         };
 
         const newOrder = new orderModel(orderData);
         await newOrder.save();
 
-        // Cập nhật số lượng sản phẩm
-        for (const item of items) {
-            await productModel.findByIdAndUpdate(item._id, {
-                $inc: { soLuong: -item.quantity }
-            });
-        }
-
         await userModel.findByIdAndUpdate(userId, { cartData: {} });
 
-        res.json({ success: true, message: "Order Placed" });
+        res.json({ success: true, message: "Order Placed", revenue: totalRevenue });
     } catch (error) {
         console.log(error);
         res.json({ success: false, message: error.message });
@@ -52,14 +71,45 @@ const placeOrderStripe = async (req, res) => {
         const { userId, items, amount, address } = req.body;
         const { origin } = req.headers;
 
+        let totalRevenue = 0;
+        let totalQuantity = 0;
+
+        for (const item of items) {
+            const product = await productModel.findById(item._id);
+            if (!product) {
+                return res.status(404).json({ message: `Không tìm thấy sản phẩm với ID ${item._id}` });
+            }
+
+            // Kiểm tra số lượng sản phẩm
+            if (product.soLuong < item.quantity) {
+                return res.status(400).json({
+                    message: `Sản phẩm ${product.name} chỉ còn ${product.soLuong} trong kho.`,
+                });
+            }
+
+            // Tính doanh thu từ từng sản phẩm
+            const revenue = (product.price - product.giaNhap) * item.quantity;
+            totalRevenue += revenue;
+
+            // Tính tổng số lượng sản phẩm
+            totalQuantity += item.quantity;
+
+            // Trừ số lượng sản phẩm trong kho
+            await productModel.findByIdAndUpdate(item._id, {
+                $inc: { soLuong: -item.quantity },
+            });
+        }
+
         const orderData = {
             userId,
             items,
             amount,
             address,
+            soLuong: totalQuantity,
             paymentMethod: "Stripe",
             payment: false,
-            date: Date.now()
+            date: Date.now(),
+            revenue: totalRevenue,
         };
 
         const newOrder = new orderModel(orderData);
@@ -69,45 +119,42 @@ const placeOrderStripe = async (req, res) => {
             price_data: {
                 currency: currency,
                 product_data: {
-                    name: item.name
+                    name: item.name,
                 },
-                unit_amount: item.price * 1
+                unit_amount: item.price * 1,
             },
-            quantity: item.quantity
+            quantity: item.quantity,
         }));
 
         line_items.push({
             price_data: {
                 currency: currency,
                 product_data: {
-                    name: 'Phí giao hàng'
+                    name: "Phí giao hàng",
                 },
-                unit_amount: deliveryCharge * 1
+                unit_amount: deliveryCharge * 1,
             },
-            quantity: 1
+            quantity: 1,
         });
 
         const session = await stripe.checkout.sessions.create({
             success_url: `${origin}/verify?success=true&orderId=${newOrder._id}`,
             cancel_url: `${origin}/verify?success=false&orderId=${newOrder._id}`,
             line_items,
-            mode: 'payment',
+            mode: "payment",
         });
 
-        // Cập nhật số lượng sản phẩm
-        for (const item of items) {
-            await productModel.findByIdAndUpdate(item._id, {
-                $inc: { soLuong: -item.quantity }
-            });
-        }
-
-        res.json({ success: true, session_url: session.url });
+        res.json({
+            success: true,
+            session_url: session.url,
+            revenue: totalRevenue,
+            soLuong: totalQuantity,
+        });
     } catch (error) {
         console.log(error);
         res.json({ success: false, message: error.message });
     }
 };
-
 
 // All orders data from Admin Panel 
 const allOrders = async (req,res) => {
@@ -176,4 +223,36 @@ const verifyStripe = async (req, res) => {
     }
 };
 
-export {verifyStripe, placeOrder, placeOrderStripe, allOrders, userOrders, updateStatus}
+const getRevenueData = async (req, res) => {
+    try {
+      // Lấy toàn bộ đơn hàng từ cơ sở dữ liệu
+      const orders = await orderModel.find({}).select("date revenue"); // Chỉ lấy các trường cần thiết
+  
+      // Kiểm tra nếu không có đơn hàng
+      if (!orders || orders.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Không có dữ liệu đơn hàng.",
+        });
+      }
+  
+      // Tạo đối tượng lưu trữ doanh thu theo ngày
+      const revenueByDate = orders.reduce((acc, order) => {
+        const date = new Date(order.date).toLocaleDateString("en-CA"); // Định dạng YYYY-MM-DD
+        acc[date] = (acc[date] || 0) + order.revenue;
+        return acc;
+      }, {});
+  
+      // Trả toàn bộ dữ liệu doanh thu
+      res.json({ success: true, revenueData: revenueByDate });
+    } catch (error) {
+      console.error("Error fetching revenue data:", error);
+      res.status(500).json({
+        success: false,
+        message: "Lỗi khi lấy dữ liệu doanh thu.",
+      });
+    }
+  };
+  
+
+export {verifyStripe, placeOrder, placeOrderStripe, allOrders, userOrders, updateStatus, getRevenueData}

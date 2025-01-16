@@ -7,6 +7,11 @@ const Sidebar = () => {
     <div className='w-[18%] min-h-screen border-r-2'>
       <div className='flex flex-col gap-4 pt-6 pl-[20%] text-[15px]'>
 
+      <NavLink className="flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l" to={"/tq"}>
+            <img className='w-8 h-8' src={assets.overview_icon} alt="" />
+            <p className='hidden md:block'>Thống kê</p>
+        </NavLink>
+
         <NavLink className="flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l" to={"/add"}>
             <img className='w-8 h-8' src={assets.add_icon} alt="" />
             <p className='hidden md:block'>Thêm <br />sản phẩm</p>
@@ -21,6 +26,7 @@ const Sidebar = () => {
             <img className='w-8 h-8' src={assets.order_icon} alt="" />
             <p className='hidden md:block'>Sản phẩm <br />được đặt</p>
         </NavLink>
+
         
       </div>
     </div>

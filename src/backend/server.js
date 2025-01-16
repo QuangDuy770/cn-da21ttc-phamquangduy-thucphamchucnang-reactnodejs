@@ -28,7 +28,7 @@ app.use('/api/product', productRouter)
 app.use('/api/cart',cartRouter)
 app.use('/api/wishlist', wishlistRouter)
 app.use('/api/order', orderRouter)
-app.use('/api/reviews', reviewRouter)
+app.use('/api/review', reviewRouter)
 app.use('/api', dashboardRouter)
 
 
